@@ -97,7 +97,7 @@ impl Connection {
 
 
 ```
-# main App
+# py tcp engine
 ```rust
 use std::sync::Arc;
 
@@ -131,6 +131,66 @@ pub(crate) async fn python_event_engine(
 
 ```
 
+
+# main App
+
+```rust
+
+mod events;
+mod connections;
+mod config;
+mod context;
+mod core;
+mod manager;
+mod utils;
+mod scripts;
+mod api;
+
+
+
+
+use core::create_new_window;
+use std::{io, sync::{mpsc, Arc}};
+use api::python_event_engine;
+use connections::Connection;
+use events::GlobalAPI;
+use tao::event_loop::{EventLoop, EventLoopBuilder};
+use utils::{create_connection_address, get_config_from_stdin};
+
+
+
+
+
+
+
+
+
+pub(crate) async fn pyframe() -> Result<(), Box<dyn std::error::Error>> {
+    let stdin = io::stdin();
+    let config = get_config_from_stdin(stdin)?;
+    let (tcp_done_tx, tcp_done_rx) = mpsc::channel();
+    let socket_addr = create_connection_address(&config)?;
+    let event_loop: EventLoop<GlobalAPI> = EventLoopBuilder::<GlobalAPI>::with_user_event().build();
+    let proxy = event_loop.create_proxy();
+    let connection = Arc::new(Connection::start_tcp(socket_addr, true).await?);
+    let connection_clone_for_py_engine = connection.clone();
+    python_event_engine(proxy, connection_clone_for_py_engine).await;
+    let connection_clone = connection.clone();
+    let tcp_handle = tokio::spawn(async move {
+        connection_clone.listen_for_events().await;
+        let _ = tcp_done_tx.send(());  
+    });
+    create_new_window(config, tcp_done_rx, connection,event_loop)?;
+
+    // Wait for TCP operation to complete
+    tcp_handle.await?;
+
+    Ok(())
+}
+
+ 
+
+```
 # main.rs
 ```rust
 // remove console window in windows system
