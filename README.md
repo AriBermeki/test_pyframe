@@ -1,7 +1,7 @@
 # test_pyframe
 
 
-
+# Connections.rs
 
 
 ```rust
@@ -97,7 +97,7 @@ impl Connection {
 
 
 ```
-
+# main App
 ```rust
 use std::sync::Arc;
 
@@ -127,6 +127,32 @@ pub(crate) async fn python_event_engine(
     }
     
 }
+
+
+```
+
+# main.rs
+```rust
+// remove console window in windows system
+#![cfg_attr(
+    all(not(debug_assertions), target_os = "windows"),
+    windows_subsystem = "windows"
+)]
+
+use app::pyframe;
+
+mod app;
+
+
+
+
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    pyframe().await?;
+    Ok(())
+}
+
 
 
 ```
