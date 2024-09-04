@@ -97,3 +97,36 @@ impl Connection {
 
 
 ```
+
+```rust
+use std::sync::Arc;
+
+use tao::event_loop::EventLoopProxy;
+
+
+use super::{connections::Connection, events::{GlobalAPI, PythonEvent}};
+
+
+
+#[allow(dead_code)]
+pub(crate) async fn python_event_engine(
+    from_py_to_proxy: EventLoopProxy<GlobalAPI>, 
+    connection: Arc<Connection>
+
+) {
+
+    let handler = connection.on("evaluate_script", move |data|{
+        let proxy = from_py_to_proxy.clone();
+        let proxy_procres = proxy.send_event(GlobalAPI::Python(PythonEvent::EvaluateScript(data)));
+        if let Err(e) = proxy_procres {
+            eprintln!("Failed to send a proxy message from evaluate_script TCP Endpoint to main loop to evaluate_script from python: {:?}", e);
+        }
+    });
+    if let Err(e) = handler.await {
+        eprintln!("Failed to send a proxy message from evaluate_script TCP Endpoint to main loop to evaluate_script from python: {:?}", e);
+    }
+    
+}
+
+
+```
